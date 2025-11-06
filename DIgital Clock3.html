@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Digital Clock</title>
+    <style>
+        /* CSS Variables for Themes */
+        :root {
+            /* Default Theme - Sunrise */
+            --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-clock: rgba(255, 255, 255, 0.15);
+            --clock-border: rgba(255, 255, 255, 0.2);
+            --clock-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --accent-color: #ffcc00;
+            --control-bg: rgba(255, 255, 255, 0.2);
+            --control-hover: rgba(255, 255, 255, 0.3);
+            --hand-hour: #ffffff;
+            --hand-minute: #ffffff;
+            --hand-second: #ff3366;
+            --center-dot: #ff3366;
+            --tick-color: rgba(255, 255, 255, 0.7);
+            --tick-major: rgba(255, 255, 255, 0.9);
+        }
+
+        .theme-ocean {
+            /* Ocean Theme */
+            --bg-primary: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            --bg-clock: rgba(255, 255, 255, 0.1);
+            --clock-border: rgba(255, 255, 255, 0.15);
+            --clock-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --accent-color: #4deeea;
+            --control-bg: rgba(255, 255, 255, 0.15);
+            --control-hover: rgba(255, 255, 255, 0.25);
+            --hand-hour: #ffffff;
+            --hand-minute: #ffffff;
+            --hand-second: #4deeea;
+            --center-dot: #4deeea;
+            --tick-color: rgba(255, 255, 255, 0.6);
+            --tick-major: rgba(255, 255, 255, 0.8);
+        }
+
+        .theme-forest {
+            /* Forest Theme */
+            --bg-primary: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+            --bg-clock: rgba(255, 255, 255, 0.1);
+            --clock-border: rgba(255, 255, 255, 0.15);
+            --clock-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --accent-color: #a8ff78;
+            --control-bg: rgba(255, 255, 255, 0.15);
+            --control-hover: rgba(255, 255, 255, 0.25);
+            --hand-hour: #ffffff;
+            --hand-minute: #ffffff;
+            --hand-second: #a8ff78;
+            --center-dot: #a8ff78;
+            --tick-color: rgba(255, 255, 255, 0.6);
+            --tick-major: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.5s ease;
+            overflow-x: hidden;
+        }
+
+        /* Clock Container */
+        .clock-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            position: relative;
+        }
+
+        /* Glassmorphism Effect */
+        .clock-face {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: var(--bg-clock);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--clock-border);
+            box-shadow: var(--clock-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle Shimmer Effect */
+        .clock-face::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            animation: shimmer 8s infinite linear;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(30deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(30deg); }
+        }
+
+        /* Analog Clock */
+        .analog-clock {
+            width: 220px;
+            height: 220px;
+            position: relative;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        /* Clock Ticks */
+        .tick {
+            position: absolute;
+            width: 2px;
+            background: var(--tick-color);
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%);
+        }
+
+        .tick-major {
+            height: 12px;
+            width: 3px;
+            background: var(--tick-major);
+        }
+
+        .tick-minor {
+            height: 6px;
+        }
+
+        /* Clock Hands */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 4px 4px 2px 2px;
+            transform: translateX(-50%);
+        }
+
+        .hour-hand {
+            width: 6px;
+            height: 60px;
+            background: var(--hand-hour);
+            z-index: 3;
+        }
+
+        .minute-hand {
+            width: 4px;
+            height: 90px;
+            background: var(--hand-minute);
+            z-index: 4;
+        }
+
+        .second-hand {
+            width: 2px;
+            height: 100px;
+            background: var(--hand-second);
+            z-index: 5;
+        }
+
+        .center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: var(--center-dot);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Digital Clock */
+        .digital-clock {
+            font-size: 3.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 15px 25px;
+            background: var(--control-bg);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--clock-border);
+        }
+
+        .ampm {
+            font-size: 1.2rem;
+            align-self: flex-end;
+            margin-bottom: 8px;
+            color: var(--accent-color);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button, select {
+            background: var(--control-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--clock-border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        button:hover, select:hover {
+            background: var(--control-hover);
+            transform: translateY(-2px);
+        }
+
+        button:focus, select:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        /* Alarm Panel */
+        .alarm-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            padding: 15px;
+            background: var(--control-bg);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--clock-border);
+            max-width: 300px;
+        }
+
+        .alarm-panel input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--clock-border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            width: 70px;
+            text-align: center;
+        }
+
+        .alarm-panel input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .alarm-panel input:focus {
+            outline: 1px solid var(--accent-color);
+        }
+
+        .alarm-active {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-color);
+        }
+
+        /* Timezone Display */
+        .timezone {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* Theme Switcher */
+        .theme-switcher {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .theme-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-btn.active {
+            border-color: var(--accent-color);
+            transform: scale(1.1);
+        }
+
+        .theme-default {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-ocean-btn {
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+        }
+
+        .theme-forest-btn {
+            background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .clock-container {
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                max-width: 800px;
+                gap: 50px;
+            }
+
+            .digital-clock {
+                font-size: 4rem;
+            }
+
+            .clock-face {
+                width: 320px;
+                height: 320px;
+            }
+
+            .analog-clock {
+                width: 250px;
+                height: 250px;
+            }
+
+            .hour-hand {
+                height: 70px;
+            }
+
+            .minute-hand {
+                height: 100px;
+            }
+
+            .second-hand {
+                height: 110px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .digital-clock {
+                font-size: 2.8rem;
+                padding: 12px 20px;
+            }
+
+            .clock-face {
+                width: 250px;
+                height: 250px;
+            }
+
+            .analog-clock {
+                width: 200px;
+                height: 200px;
+            }
+
+            .hour-hand {
+                height: 50px;
+            }
+
+            .minute-hand {
+                height: 75px;
+            }
+
+            .second-hand {
+                height: 85px;
+            }
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            .clock-face::before {
+                animation: none;
+            }
+
+            .hand {
+                transition: none;
+            }
+
+            button:hover, select:hover {
+                transform: none;
+            }
+        }
+
+        /* Hidden Class */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="clock-container">
+        <!-- Analog Clock -->
+        <div class="clock-face">
+            <div class="analog-clock" id="analogClock">
+                <!-- Clock ticks will be generated by JavaScript -->
+                <div class="hand hour-hand" id="hourHand"></div>
+                <div class="hand minute-hand" id="minuteHand"></div>
+                <div class="hand second-hand" id="secondHand"></div>
+                <div class="center-dot"></div>
+            </div>
+        </div>
+
+        <!-- Digital Clock -->
+        <div class="digital-container">
+            <div class="digital-clock" id="digitalClock">
+                <span class="time-hours" id="hours">00</span>
+                <span class="time-colon">:</span>
+                <span class="time-minutes" id="minutes">00</span>
+                <span class="time-colon">:</span>
+                <span class="time-seconds" id="seconds">00</span>
+                <span class="ampm" id="ampm"></span>
+            </div>
+            <div class="timezone" id="timezone">Local Time</div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button id="toggleMode">Switch to Digital</button>
+                <select id="timezoneSelect">
+                    <option value="local">Local Time</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">New York (EST)</option>
+                    <option value="Asia/Dhaka">Dhaka (BST)</option>
+                    <option value="Asia/Tokyo">Tokyo (JST)</option>
+                </select>
+                <button id="formatToggle">24H Format</button>
+                <button id="downloadBtn">Download PNG</button>
+            </div>
+            
+            <!-- Alarm Panel -->
+            <div class="alarm-panel">
+                <input type="number" id="alarmHour" placeholder="HH" min="0" max="23">
+                <span>:</span>
+                <input type="number" id="alarmMinute" placeholder="MM" min="0" max="59">
+                <button id="setAlarm">Set Alarm</button>
+                <div class="alarm-active hidden" id="alarmActive">
+                    <span>Alarm Set</span>
+                    <button id="dismissAlarm">Dismiss</button>
+                </div>
+            </div>
+            
+            <!-- Theme Switcher -->
+            <div class="theme-switcher">
+                <div class="theme-btn theme-default active" data-theme="default"></div>
+                <div class="theme-btn theme-ocean-btn" data-theme="ocean"></div>
+                <div class="theme-btn theme-forest-btn" data-theme="forest"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Main Clock Functionality
+        (function() {
+            // DOM Elements
+            const analogClock = document.getElementById('analogClock');
+            const digitalClock = document.getElementById('digitalClock');
+            const hourHand = document.getElementById('hourHand');
+            const minuteHand = document.getElementById('minuteHand');
+            const secondHand = document.getElementById('secondHand');
+            const hoursElement = document.getElementById('hours');
+            const minutesElement = document.getElementById('minutes');
+            const secondsElement = document.getElementById('seconds');
+            const ampmElement = document.getElementById('ampm');
+            const timezoneElement = document.getElementById('timezone');
+            const toggleModeBtn = document.getElementById('toggleMode');
+            const timezoneSelect = document.getElementById('timezoneSelect');
+            const formatToggleBtn = document.getElementById('formatToggle');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const alarmHour = document.getElementById('alarmHour');
+            const alarmMinute = document.getElementById('alarmMinute');
+            const setAlarmBtn = document.getElementById('setAlarm');
+            const alarmActive = document.getElementById('alarmActive');
+            const dismissAlarmBtn = document.getElementById('dismissAlarm');
+            const themeButtons = document.querySelectorAll('.theme-btn');
+            
+            // State Variables
+            let isAnalogMode = true;
+            let use24HourFormat = false;
+            let selectedTimezone = 'local';
+            let alarmTime = null;
+            let alarmAudioContext = null;
+            let alarmOscillator = null;
+            
+            // Initialize clock
+            function initClock() {
+                createClockTicks();
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                // Check system preference for 24-hour format
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    document.body.classList.add('reduced-motion');
+                }
+                
+                // Check system preference for 12/24 hour format (not directly detectable, so we use a heuristic)
+                const testDate = new Date();
+                const testTime = testDate.toLocaleTimeString();
+                use24HourFormat = !testTime.includes('AM') && !testTime.includes('PM');
+                formatToggleBtn.textContent = use24HourFormat ? '12H Format' : '24H Format';
+            }
+            
+            // Create clock ticks
+            function createClockTicks() {
+                for (let i = 0; i < 60; i++) {
+                    const tick = document.createElement('div');
+                    tick.className = i % 5 === 0 ? 'tick tick-major' : 'tick tick-minor';
+                    tick.style.transform = `translateX(-50%) rotate(${i * 6}deg)`;
+                    analogClock.appendChild(tick);
+                }
+            }
+            
+            // Update clock display
+            function updateClock() {
+                const now = getCurrentTime();
+                
+                // Update analog clock
+                const seconds = now.getSeconds();
+                const minutes = now.getMinutes();
+                const hours = now.getHours() % 12;
+                
+                secondHand.style.transform = `translateX(-50%) rotate(${seconds * 6}deg)`;
+                minuteHand.style.transform = `translateX(-50%) rotate(${minutes * 6}deg)`;
+                hourHand.style.transform = `translateX(-50%) rotate(${hours * 30 + minutes * 0.5}deg)`;
+                
+                // Update digital clock
+                let displayHours = now.getHours();
+                let ampm = '';
+                
+                if (!use24HourFormat) {
+                    ampm = displayHours >= 12 ? 'PM' : 'AM';
+                    displayHours = displayHours % 12 || 12;
+                }
+                
+                hoursElement.textContent = displayHours.toString().padStart(2, '0');
+                minutesElement.textContent = minutes.toString().padStart(2, '0');
+                secondsElement.textContent = seconds.toString().padStart(2, '0');
+                ampmElement.textContent = ampm;
+                
+                // Update timezone display
+                updateTimezoneDisplay(now);
+                
+                // Check alarm
+                checkAlarm(now);
+            }
+            
+            // Get current time based on selected timezone
+            function getCurrentTime() {
+                if (selectedTimezone === 'local') {
+                    return new Date();
+                } else if (selectedTimezone === 'UTC') {
+                    return new Date(Date.now() + (new Date()).getTimezoneOffset() * 60000);
+                } else {
+                    // For other timezones, we use toLocaleString with timeZone option
+                    // This is a simplified approach - in a real app you might use a library
+                    const now = new Date();
+                    const options = { timeZone: selectedTimezone };
+                    const localTime = new Date(now.toLocaleString('en-US', options));
+                    return localTime;
+                }
+            }
+            
+            // Update timezone display
+            function updateTimezoneDisplay(date) {
+                let timezoneText = 'Local Time';
+                
+                if (selectedTimezone === 'UTC') {
+                    timezoneText = 'UTC';
+                } else if (selectedTimezone !== 'local') {
+                    // Extract timezone abbreviation
+                    const tzAbbr = date.toLocaleTimeString('en-us', { timeZoneName: 'short', timeZone: selectedTimezone }).split(' ')[2];
+                    timezoneText = `${selectedTimezone.split('/')[1]} (${tzAbbr})`;
+                }
+                
+                timezoneElement.textContent = timezoneText;
+            }
+            
+            // Check if alarm should trigger
+            function checkAlarm(now) {
+                if (!alarmTime) return;
+                
+                const currentHours = now.getHours();
+                const currentMinutes = now.getMinutes();
+                
+                if (currentHours === alarmTime.hours && currentMinutes === alarmTime.minutes && now.getSeconds() === 0) {
+                    triggerAlarm();
+                }
+            }
+            
+            // Trigger alarm sound
+            function triggerAlarm() {
+                // Create Web Audio API context for beep sound
+                try {
+                    alarmAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    alarmOscillator = alarmAudioContext.createOscillator();
+                    const gainNode = alarmAudioContext.createGain();
+                    
+                    alarmOscillator.connect(gainNode);
+                    gainNode.connect(alarmAudioContext.destination);
+                    
+                    alarmOscillator.type = 'sine';
+                    alarmOscillator.frequency.value = 800;
+                    
+                    gainNode.gain.setValueAtTime(0.3, alarmAudioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, alarmAudioContext.currentTime + 2);
+                    
+                    alarmOscillator.start();
+                    alarmOscillator.stop(alarmAudioContext.currentTime + 2);
+                    
+                    // Show dismiss button
+                    alarmActive.classList.remove('hidden');
+                } catch (e) {
+                    console.error('Audio context not supported:', e);
+                    // Fallback: just show the dismiss button
+                    alarmActive.classList.remove('hidden');
+                }
+            }
+            
+            // Set alarm
+            function setAlarm() {
+                const hours = parseInt(alarmHour.value);
+                const minutes = parseInt(alarmMinute.value);
+                
+                if (isNaN(hours) || hours < 0 || hours > 23 ||
+                    isNaN(minutes) || minutes < 0 || minutes > 59) {
+                    alert('Please enter valid hours (0-23) and minutes (0-59)');
+                    return;
+                }
+                
+                alarmTime = { hours, minutes };
+                alarmHour.value = '';
+                alarmMinute.value = '';
+                
+                // Show alarm set message
+                const alarmDisplay = document.querySelector('.alarm-active span');
+                alarmDisplay.textContent = `Alarm set for ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                alarmActive.classList.remove('hidden');
+            }
+            
+            // Dismiss alarm
+            function dismissAlarm() {
+                alarmTime = null;
+                alarmActive.classList.add('hidden');
+                
+                if (alarmOscillator) {
+                    alarmOscillator.stop();
+                    alarmOscillator = null;
+                }
+                
+                if (alarmAudioContext) {
+                    alarmAudioContext.close();
+                    alarmAudioContext = null;
+                }
+            }
+            
+            // Toggle between analog and digital modes
+            function toggleMode() {
+                isAnalogMode = !isAnalogMode;
+                
+                if (isAnalogMode) {
+                    document.querySelector('.clock-face').style.display = 'flex';
+                    digitalClock.style.display = 'none';
+                    toggleModeBtn.textContent = 'Switch to Digital';
+                } else {
+                    document.querySelector('.clock-face').style.display = 'none';
+                    digitalClock.style.display = 'flex';
+                    toggleModeBtn.textContent = 'Switch to Analog';
+                }
+            }
+            
+            // Toggle 12/24 hour format
+            function toggleFormat() {
+                use24HourFormat = !use24HourFormat;
+                formatToggleBtn.textContent = use24HourFormat ? '12H Format' : '24H Format';
+                updateClock();
+            }
+            
+            // Change timezone
+            function changeTimezone() {
+                selectedTimezone = timezoneSelect.value;
+                updateClock();
+            }
+            
+            // Change theme
+            function changeTheme(theme) {
+                document.body.className = '';
+                if (theme !== 'default') {
+                    document.body.classList.add(`theme-${theme}`);
+                }
+                
+                // Update active theme button
+                themeButtons.forEach(btn => {
+                    if (btn.getAttribute('data-theme') === theme) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Download clock as PNG
+            function downloadClock() {
+                const clockElement = isAnalogMode ? document.querySelector('.clock-face') : digitalClock;
+                
+                html2canvas(clockElement).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `clock-${new Date().getTime()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+            
+            // HTML2Canvas implementation (simplified for this demo)
+            const html2canvas = function(element) {
+                return new Promise(resolve => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const rect = element.getBoundingClientRect();
+                    
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                    
+                    // Fill with background
+                    ctx.fillStyle = getComputedStyle(document.body).background;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // For analog clock
+                    if (isAnalogMode) {
+                        // Draw clock face
+                        const centerX = canvas.width / 2;
+                        const centerY = canvas.height / 2;
+                        const radius = Math.min(centerX, centerY) - 10;
+                        
+                        // Draw clock circle
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                        ctx.fillStyle = getComputedStyle(element).background;
+                        ctx.fill();
+                        ctx.strokeStyle = getComputedStyle(element).borderColor;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        
+                        // Draw clock hands (current time)
+                        const now = getCurrentTime();
+                        const seconds = now.getSeconds();
+                        const minutes = now.getMinutes();
+                        const hours = now.getHours() % 12;
+                        
+                        // Draw hour hand
+                        const hourAngle = (hours * 30 + minutes * 0.5) * Math.PI / 180;
+                        ctx.save();
+                        ctx.translate(centerX, centerY);
+                        ctx.rotate(hourAngle);
+                        ctx.fillStyle = getComputedStyle(hourHand).background;
+                        ctx.fillRect(-3, -radius * 0.5, 6, radius * 0.5);
+                        ctx.restore();
+                        
+                        // Draw minute hand
+                        const minuteAngle = minutes * 6 * Math.PI / 180;
+                        ctx.save();
+                        ctx.translate(centerX, centerY);
+                        ctx.rotate(minuteAngle);
+                        ctx.fillStyle = getComputedStyle(minuteHand).background;
+                        ctx.fillRect(-2, -radius * 0.7, 4, radius * 0.7);
+                        ctx.restore();
+                        
+                        // Draw second hand
+                        const secondAngle = seconds * 6 * Math.PI / 180;
+                        ctx.save();
+                        ctx.translate(centerX, centerY);
+                        ctx.rotate(secondAngle);
+                        ctx.fillStyle = getComputedStyle(secondHand).background;
+                        ctx.fillRect(-1, -radius * 0.8, 2, radius * 0.8);
+                        ctx.restore();
+                        
+                        // Draw center dot
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+                        ctx.fillStyle = getComputedStyle(document.querySelector('.center-dot')).background;
+                        ctx.fill();
+                    } else {
+                        // For digital clock - draw text
+                        ctx.font = '48px Segoe UI, system-ui, sans-serif';
+                        ctx.fillStyle = getComputedStyle(digitalClock).color;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(
+                            `${hoursElement.textContent}:${minutesElement.textContent}:${secondsElement.textContent} ${ampmElement.textContent}`,
+                            canvas.width / 2,
+                            canvas.height / 2
+                        );
+                    }
+                    
+                    resolve(canvas);
+                });
+            };
+            
+            // Event Listeners
+            toggleModeBtn.addEventListener('click', toggleMode);
+            formatToggleBtn.addEventListener('click', toggleFormat);
+            timezoneSelect.addEventListener('change', changeTimezone);
+            setAlarmBtn.addEventListener('click', setAlarm);
+            dismissAlarmBtn.addEventListener('click', dismissAlarm);
+            downloadBtn.addEventListener('click', downloadClock);
+            
+            themeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    changeTheme(btn.getAttribute('data-theme'));
+                });
+            });
+            
+            // Initialize the clock
+            initClock();
+        })();
+    </script>
+</body>
+</html>
